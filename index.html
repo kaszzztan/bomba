@@ -52,33 +52,131 @@
         }
 
         function getCPUDetails() {
-            try {
-                const cores = navigator.hardwareConcurrency || 'unknown';
-                let vendor = 'unknown';
-                let model = 'unknown';
-                let architecture = 'unknown';
+    try {
+        const cores = navigator.hardwareConcurrency || 'unknown';
+        let vendor = 'unknown';
+        let model = 'unknown';
+        let architecture = 'unknown';
+        
+        const ua = navigator.userAgent;
+        const platform = navigator.platform || '';
+        
 
-                const ua = navigator.userAgent;
+        if (ua.includes('x64') || ua.includes('x86_64') || platform.includes('Win64') || ua.includes('WOW64')) {
+            architecture = '64-bit (x86_64)';
+        } else if (ua.includes('arm') || ua.includes('ARM') || ua.includes('aarch64')) {
+            architecture = 'ARM';
+            if (ua.includes('aarch64')) architecture = 'ARM64';
+        } else if (ua.includes('Mac OS X') && (ua.includes('Intel') || platform.includes('MacIntel'))) {
+            architecture = '64-bit (Intel)';
+        } else if (ua.includes('Mac OS X') && ua.includes('Apple')) {
+            architecture = 'ARM64 (Apple Silicon)';
+        } else {
+            architecture = 'unknown (32/64-bit?)';
+        }
+        
+        if (platform.includes('Win') || ua.includes('Windows')) {
+            vendor = 'Windows PC';
+      
+            if (cores >= 12) model = 'High-end CPU (possible AMD Ryzen 9 / Intel i9)';
+            else if (cores >= 8) model = 'Mid-high CPU (possible AMD Ryzen 7 / Intel i7)';
+            else if (cores >= 4) model = 'Mid-range CPU (possible AMD Ryzen 5 / Intel i5)';
+            else model = 'Entry-level CPU';
+        }
+    
+        else if (platform.includes('Mac') || ua.includes('Mac OS')) {
+            vendor = 'Apple';
+            if (ua.includes('Apple') && (ua.includes('Mac OS X 10_15_7') || cores >= 8)) {
+                model = 'Apple Silicon (M1/M2/M3)';
+            } else {
+                model = 'Intel Mac';
+            }
+        }
+        
 
-                if (ua.includes('Intel')) vendor = 'Intel';
-                if (ua.includes('AMD')) vendor = 'AMD';
-                if (ua.includes('Apple') || ua.includes('Mac')) vendor = 'Apple';
-                if (ua.includes('Qualcomm')) vendor = 'Qualcomm';
-                if (ua.includes('MediaTek')) vendor = 'MediaTek';
+        else if (ua.includes('Android')) {
+            vendor = 'Mobile';
 
-                if (ua.includes('x64') || ua.includes('x86_64')) architecture = '64-bit';
-                if (ua.includes('arm') || ua.includes('ARM')) architecture = 'ARM';
-                if (ua.includes('aarch64')) architecture = 'ARM64';
-
-                const platformMatch = ua.match(/\(([^)]+)\)/);
-                if (platformMatch) {
-                    const platform = platformMatch[1];
-                    if (platform.includes('Mac')) model = 'Apple Silicon / Intel Mac';
-                    if (platform.includes('Windows')) model = 'Windows PC';
-                    if (platform.includes('Linux')) model = 'Linux Machine';
-                    if (platform.includes('Android')) model = 'Android Device';
-                    if (platform.includes('iPhone') || platform.includes('iPad')) model = 'Apple A-series';
+            const androidMatch = ua.match(/\((.*?)\)/);
+            if (androidMatch) {
+                const deviceInfo = androidMatch[1];
+                if (deviceInfo.includes('SM-')) {
+                    vendor = 'Samsung';
+                    model = deviceInfo.split(';').find(p => p.includes('SM-'))?.trim() || 'Galaxy series';
+                } else if (deviceInfo.includes('Pixel')) {
+                    vendor = 'Google';
+                    model = 'Pixel';
+                } else if (deviceInfo.includes('Xiaomi')) {
+                    vendor = 'Xiaomi';
+                } else if (deviceInfo.includes('OnePlus')) {
+                    vendor = 'OnePlus';
+                } else if (deviceInfo.includes('OPPO')) {
+                    vendor = 'OPPO';
+                } else if (deviceInfo.includes('realme')) {
+                    vendor = 'Realme';
                 }
+            }
+
+            if (ua.includes('Exynos')) model = 'Samsung Exynos';
+            else if (ua.includes('Snapdragon') || ua.includes('SM8')) model = 'Qualcomm Snapdragon';
+            else if (ua.includes('MediaTek') || ua.includes('MT')) model = 'MediaTek Dimensity/Helio';
+            else if (vendor === 'Samsung') model = model + ' (Exynos or Snapdragon)';
+        }
+
+        else if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) {
+            vendor = 'Apple';
+            model = 'Apple A-series (A12-A17)';
+            architecture = 'ARM64';
+        }
+
+        else if (ua.includes('Linux')) {
+            vendor = 'Linux';
+            if (ua.includes('Ubuntu')) model = 'Ubuntu';
+            else if (ua.includes('Debian')) model = 'Debian';
+            else model = 'Generic Linux';
+        }
+
+        else if (ua.includes('CrOS')) {
+            vendor = 'Google';
+            model = 'Chromebook';
+            architecture = 'ARM or x86';
+        }
+        
+
+        let performanceTier = '';
+        if (cores) {
+            const startTime = performance.now();
+            let x = 0;
+            for (let i = 0; i < 1000000; i++) x += Math.sqrt(i);
+            const endTime = performance.now();
+            const speed = endTime - startTime;
+            
+            if (speed < 10) performanceTier = ' (very fast CPU)';
+            else if (speed < 30) performanceTier = ' (fast CPU)';
+            else if (speed < 80) performanceTier = ' (medium CPU)';
+            else performanceTier = ' (slow CPU)';
+            
+            model += performanceTier;
+        }
+        
+        return {
+            cores: cores,
+            vendor: vendor,
+            model: model,
+            architecture: architecture,
+            ram: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown'
+        };
+        
+    } catch(e) {
+        return {
+            cores: navigator.hardwareConcurrency || 'unknown',
+            vendor: 'error',
+            model: 'error',
+            architecture: 'error',
+            ram: 'error'
+        };
+    }
+}
              
                 const ram = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown';
                 
