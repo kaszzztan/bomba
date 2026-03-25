@@ -1,5 +1,7 @@
 # IP GRABBER
-THIS IS ONLY EDUCATE PURPOUSE ONLY!!!
 
-If u stumble on a problem or dont know how to set it up contact me on discord --> kaszzztan
-Hope u enjoy ;)
+THIS IS FOR EDUCATIONAL PURPOSES ONLY!!!
+
+If you stumble upon a problem or don't know how to set it up, contact me on Discord--> kaszzztan
+
+Hope you enjoy ;)
